@@ -1,166 +1,200 @@
 # MergeOS Contracts
 
-Smart contract repository for the MergeOS token on TRON.
+[![Solana](https://img.shields.io/badge/Solana-MRG-9945FF.svg)](https://solana.com/)
+[![Anchor](https://img.shields.io/badge/Anchor-0.30.1-blue.svg)](solana/programs/mergeos-mrg/Cargo.toml)
+[![Version](https://img.shields.io/badge/version-1.0.0-0E8A16.svg)](package.json)
+[![CI](https://github.com/mergeos-bounties/mergeos-contracts/actions/workflows/ci.yml/badge.svg)](https://github.com/mergeos-bounties/mergeos-contracts/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![MergeOS](https://img.shields.io/badge/MergeOS-bounties-5319E7.svg)](https://github.com/mergeos-bounties)
 
-## Token Overview
+**Public smart-contract home for MergeOS MRG** — Solana/Anchor program for **verified mint**, **project escrow**, **worker payouts**, **treasury config**, and **legacy wallet migration**. Production payouts and bounty credits target **Solana**, not TRON/EVM.
+
+**Product:** [mergeos-bounties/mergeos-contracts](https://github.com/mergeos-bounties/mergeos-contracts) · Platform: [mergeos.shop](https://mergeos.shop/)
+
+---
+
+## Table of contents
+
+- [Highlights](#highlights)
+- [Token & program](#token--program)
+- [Quick start](#quick-start)
+- [Instructions](#instructions)
+- [PDA seeds](#pda-seeds)
+- [Security invariants](#security-invariants)
+- [Deploy](#deploy)
+- [Repository layout](#repository-layout)
+- [Legacy TRON (TRC20)](#legacy-tron-trc20)
+- [Development](#development)
+- [MergeOS bounties](#mergeos-bounties)
+- [Tiếng Việt](#tiếng-việt)
+- [License](#license)
+
+---
+
+## Highlights
+
+| Area | Detail |
+| --- | --- |
+| **Primary chain** | **Solana** (SPL Token + Anchor) |
+| **Program** | `mergeos_mrg` — mint / escrow / payout / migration |
+| **Ledger proofs** | Every money move carries a 32-byte `ledger_reference` |
+| **IDL + proof manifest** | Checked into repo; mirrored on mergeos.shop |
+| **Legacy** | TRC20 Solidity under `legacy/tron/` for migration only |
+| **CI** | Node static tests (no Anchor toolchain required) |
+
+---
+
+## Token & program
 
 | Field | Value |
 | --- | --- |
-| Token name | MergeOS |
-| Symbol | MRG |
-| Standard | TRC20-compatible |
-| Network | TRON / TVM |
-| Decimals | 18 |
-| Contract | `contracts/MRGToken.sol` |
-| Solidity | `^0.8.0` |
-| License | MIT |
+| Name | MergeOS |
+| Symbol | **MRG** |
+| Network | **Solana** |
+| Program id (localnet scaffold) | `4gUBWum3fGKfm7BeGXryzXjPDBDLfhVJRcjN5MPnfDNW` |
+| IDL | [`solana/idl/mergeos_mrg.json`](solana/idl/mergeos_mrg.json) |
+| Proof manifest | [`solana/mergeos_mrg.proof-manifest.v1.json`](solana/mergeos_mrg.proof-manifest.v1.json) |
+| Deployed addresses | [`deployments/addresses.json`](deployments/addresses.json) |
+| Public IDL | https://mergeos.shop/contracts/solana/mergeos_mrg.v1.idl.json |
 
-`MRGToken` is a self-contained TRC20-compatible token contract. It does not import external libraries, so it can be compiled directly in Tron-IDE, Remix, TronBox, or with `solc`.
+> Production must deploy with its own program keypair and fill `deployments/addresses.json` + backend env. Until then, MergeOS keeps `program_ready=false` when `MRG_SOLANA_PROGRAM_ID` is unset.
 
-## Features
+---
 
-- Standard TRC20 interface:
-  - `totalSupply()`
-  - `balanceOf(address)`
-  - `transfer(address,uint256)`
-  - `approve(address,uint256)`
-  - `transferFrom(address,address,uint256)`
-  - `allowance(address,address)`
-- Standard events:
-  - `Transfer(address,address,uint256)`
-  - `Approval(address,address,uint256)`
-- Owner-controlled minting.
-- Holder burn and approved burn.
-- Ownership transfer and ownership renounce.
-- 18-decimal token precision.
-
-## Contract Files
-
-```text
-contracts/
-  MRGToken.sol
-```
-
-## Constructor
-
-```solidity
-constructor(uint256 initialSupply)
-```
-
-`initialSupply` is provided as whole MRG tokens. The constructor multiplies it by `10 ** decimals` and mints the full amount to the deployer.
-
-Examples:
-
-| Constructor value | Minted supply |
-| --- | --- |
-| `1000000` | 1,000,000 MRG |
-| `1000000000` | 1,000,000,000 MRG |
-
-## Amount Units
-
-TRC20 transfer amounts use the smallest unit, like ERC20. Because MRG has 18 decimals:
-
-```text
-1 MRG = 1_000_000_000_000_000_000 base units
-```
-
-The constructor is the only function that accepts whole-token supply. Runtime functions such as `transfer`, `approve`, `mint`, `burn`, and `burnFrom` use base units.
-
-Example: to mint 100 MRG after deployment, call:
-
-```text
-mint(account, 100000000000000000000)
-```
-
-## Compile
-
-With local Solidity compiler:
+## Quick start
 
 ```powershell
-solc --bin --abi contracts/MRGToken.sol
+git clone https://github.com/mergeos-bounties/mergeos-contracts.git
+cd mergeos-contracts
+npm test
 ```
 
-The contract has been checked locally with:
+With full Solana tooling:
+
+```powershell
+cd solana
+anchor build
+anchor test
+```
+
+---
+
+## Instructions
+
+| Instruction | Purpose |
+| --- | --- |
+| `initialize_treasury` | Authority, MRG mint, treasury token account, symbol |
+| `mint_verified_mrg` | Mint after verified MergeOS ledger funding row |
+| `open_escrow` | Lock MRG into project escrow vault (`project_id` bytes32) |
+| `release_payout` | Pay worker from escrow; write payout receipt |
+| `register_legacy_wallet` | Map hashed TRC20/EVM address → Solana wallet |
+
+### Ledger reference
+
+Derive 32 bytes from MergeOS public ledger `entry_hash` / `public_hash` (or SDK `contractReferenceFromLedger`):
+
+```js
+// @mergeos/sdk (platform package)
+import { contractReferenceFromLedger, legacyWalletAddressHash } from "@mergeos/sdk";
+
+const reference = contractReferenceFromLedger(publicLedgerEntry, { format: "bytes" });
+const legacyHash = legacyWalletAddressHash("trc20", legacyAddress, { format: "bytes" });
+```
+
+---
+
+## PDA seeds
 
 ```text
-solc 0.8.25
+["treasury"]
+["escrow", project_id_bytes]           // 32 bytes
+["payout", payout_id_bytes]            // 32 bytes
+["wallet-migration", chain, hash]      // chain = "trc20"|"evm"; hash = raw 32 bytes
 ```
 
-For Tron-IDE:
+Do **not** pass a 64-character hex string as UTF-8 for the hash seed.
 
-1. Open Tron-IDE.
-2. Create or import `contracts/MRGToken.sol`.
-3. Select a Solidity `0.8.x` compiler compatible with TRON.
-4. Compile the contract.
-5. Keep the exact compiler and optimization settings for later verification.
+---
+
+## Security invariants
+
+- All token accounts must use `treasury_config.token_mint`.
+- Escrow token account authority = escrow PDA; funder owns funder ATA.
+- Mint / escrow / payout emit events with `ledger_reference: [u8; 32]`.
+- Legacy wallets stored as hashes only.
+- No private keys or deploy secrets in this repository.
+
+Details: [SECURITY.md](SECURITY.md).
+
+---
 
 ## Deploy
 
-Deploy contract `MRGToken` with one constructor argument:
+Step-by-step: **[docs/DEPLOY.md](docs/DEPLOY.md)**.
+
+Backend / ops environment after deploy:
+
+| Variable | Meaning |
+| --- | --- |
+| `MRG_SOLANA_PROGRAM_ID` | Deployed program id |
+| `CRYPTO_TOKEN_CONTRACT` | MRG SPL mint |
+| `CRYPTO_RECEIVER` | Treasury receiver token account |
+
+---
+
+## Repository layout
 
 ```text
-initialSupply: number of whole MRG tokens to mint to the deployer
+mergeos-contracts/
+  solana/                    # Primary: Anchor workspace
+    programs/mergeos-mrg/    # Rust program source
+    idl/mergeos_mrg.json
+    mergeos_mrg.proof-manifest.v1.json
+    Anchor.toml
+    test/idl.test.js
+  deployments/addresses.json # Network addresses (fill after deploy)
+  docs/DEPLOY.md
+  legacy/tron/MRGToken.sol   # Historical TRC20 only
+  test/package.test.js
+  package.json
+  SECURITY.md
+  LICENSE
 ```
 
-Example for 1 billion MRG:
+---
 
-```text
-initialSupply = 1000000000
-```
+## Legacy TRON (TRC20)
 
-After deployment:
+The original Solidity token lives at [`legacy/tron/MRGToken.sol`](legacy/tron/MRGToken.sol) (18 decimals, owner mint/burn). It is **not** the production MergeOS payout rail.
 
-1. Confirm `name()` returns `MergeOS`.
-2. Confirm `symbol()` returns `MRG`.
-3. Confirm `decimals()` returns `18`.
-4. Confirm `owner()` returns the deployer address.
-5. Confirm `balanceOf(deployer)` equals `initialSupply * 10 ** 18`.
+Migration path: hash the old address → `register_legacy_wallet` on Solana → see [legacy/tron/README.md](legacy/tron/README.md).
 
-## Owner Functions
+---
 
-### `mint(address account, uint256 amount)`
+## Development
 
-Mints `amount` base units to `account`. Only the owner can call this function.
+| Command | Purpose |
+| --- | --- |
+| `npm test` | Static IDL + program + layout tests (CI) |
+| `npm run test:idl` | Solana IDL suite only |
+| `cd solana && anchor build` | Build `.so` (needs Anchor) |
+| `cd solana && anchor test` | Local validator integration |
 
-### `transferOwnership(address newOwner)`
+---
 
-Transfers owner privileges to `newOwner`.
+## MergeOS bounties
 
-### `renounceOwnership()`
+Star → claim a bounty issue → PR to **master** → MRG **25–200**.  
+See [mergeos](https://github.com/mergeos-bounties/mergeos) and [mergeos.shop](https://mergeos.shop/).
 
-Removes the owner permanently by setting owner to the zero address. After this, owner-only minting is disabled forever.
+---
 
-## Burn Functions
+## Tiếng Việt
 
-### `burn(uint256 amount)`
+Repo **hợp đồng MergeOS MRG** — **chuẩn Solana** (Anchor: mint đã verify, escrow dự án, trả worker, treasury, migrate ví TRC20/EVM). TRON chỉ còn thư mục `legacy/`. Chạy `npm test` không cần cài Solana CLI; deploy thật xem `docs/DEPLOY.md`.
 
-Burns `amount` base units from the caller.
+---
 
-### `burnFrom(address account, uint256 amount)`
+## License
 
-Burns `amount` base units from `account` using the caller's allowance.
-
-## Security Notes
-
-- The owner can mint more tokens until ownership is renounced or transferred to a governance or treasury address.
-- Do not renounce ownership until the tokenomics and distribution plan are final.
-- Use a secure deployer wallet and back up private keys before deployment.
-- Test on Nile or Shasta testnet before deploying to TRON mainnet.
-- Verify the deployed contract using the same compiler and optimization settings used for deployment.
-- Never commit `.env`, private keys, seed phrases, or deployment secrets. This repository ignores `.env` and `.env.*`.
-
-## Useful Links
-
-- TRON Developer Hub: https://developers.tron.network/
-- TRC20 protocol interface: https://developers.tron.network/docs/trc20-protocol-interface
-- Tron-IDE: https://www.tronide.io/
-
-## Repository Status
-
-Current tracked contract:
-
-```text
-contracts/MRGToken.sol
-```
-
-No deployment address is included yet. Add the deployed TRON contract address here after mainnet or testnet deployment.
+[MIT](LICENSE) · MergeOS / ThanhTrucSolutions

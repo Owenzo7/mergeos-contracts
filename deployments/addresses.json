@@ -1,0 +1,41 @@
+{
+  "protocol_version": "mergeos.deployments.v1",
+  "token": {
+    "name": "MergeOS",
+    "symbol": "MRG",
+    "decimals": 9,
+    "standard": "spl-token"
+  },
+  "solana": {
+    "localnet": {
+      "program_id": "4gUBWum3fGKfm7BeGXryzXjPDBDLfhVJRcjN5MPnfDNW",
+      "status": "scaffold",
+      "notes": "Checked-in Anchor declare_id / localnet id. Replace on production deploy."
+    },
+    "devnet": {
+      "program_id": null,
+      "mrg_mint": null,
+      "treasury_token_account": null,
+      "status": "not_deployed"
+    },
+    "mainnet-beta": {
+      "program_id": null,
+      "mrg_mint": null,
+      "treasury_token_account": null,
+      "status": "not_deployed"
+    }
+  },
+  "legacy": {
+    "tron": {
+      "standard": "trc20",
+      "contract_source": "legacy/tron/MRGToken.sol",
+      "mainnet_address": null,
+      "status": "legacy_reference"
+    }
+  },
+  "env_mapping": {
+    "MRG_SOLANA_PROGRAM_ID": "Deployed mergeos_mrg program id",
+    "CRYPTO_TOKEN_CONTRACT": "MRG SPL mint address",
+    "CRYPTO_RECEIVER": "Treasury receiver token account"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "@mergeos/contracts",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "description": "MergeOS MRG on Solana — Anchor program for mint, escrow, payout, treasury, and legacy wallet migration.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mergeos-bounties/mergeos-contracts.git"
+  },
+  "homepage": "https://github.com/mergeos-bounties/mergeos-contracts",
+  "bugs": {
+    "url": "https://github.com/mergeos-bounties/mergeos-contracts/issues"
+  },
+  "keywords": [
+    "mergeos",
+    "mrg",
+    "solana",
+    "anchor",
+    "spl-token",
+    "escrow",
+    "bounty"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js solana/test/*.test.js",
+    "test:idl": "node --test solana/test/idl.test.js",
+    "test:package": "node --test test/package.test.js",
+    "verify": "npm test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
