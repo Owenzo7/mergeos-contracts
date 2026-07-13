@@ -26,7 +26,6 @@
 - [Legacy TRON (TRC20)](#legacy-tron-trc20)
 - [Development](#development)
 - [MergeOS bounties](#mergeos-bounties)
-- [Tiếng Việt](#tiếng-việt)
 - [License](#license)
 
 ---
@@ -186,12 +185,6 @@ Migration path: hash the old address → `register_legacy_wallet` on Solana → 
 
 Star → claim a bounty issue → PR to **master** → MRG **25–200**.  
 See [mergeos](https://github.com/mergeos-bounties/mergeos) and [mergeos.shop](https://mergeos.shop/).
-
----
-
-## Tiếng Việt
-
-Repo **hợp đồng MergeOS MRG** — **chuẩn Solana** (Anchor: mint đã verify, escrow dự án, trả worker, treasury, migrate ví TRC20/EVM). TRON chỉ còn thư mục `legacy/`. Chạy `npm test` không cần cài Solana CLI; deploy thật xem `docs/DEPLOY.md`.
 
 ---
 
