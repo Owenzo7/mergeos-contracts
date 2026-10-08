@@ -91,34 +91,34 @@ pub mod mergeos_mrg {
         )?; // CPI is okay
 
         let escrow = &mut ctx.accounts.escrow_vault;
-        escrow.project_id = project_id; // update is valid
-        escrow.funder = ctx.accounts.funder.key(); // update is valid
-        escrow.token_mint = ctx.accounts.token_mint.key(); // update is valid
-        escrow.escrow_token_account = ctx.accounts.escrow_token_account.key(); // update is valid
-        escrow.opened_ledger_reference = ledger_reference; // Update is valid
+        escrow.project_id = project_id;
+        escrow.funder = ctx.accounts.funder.key();
+        escrow.token_mint = ctx.accounts.token_mint.key();
+        escrow.escrow_token_account = ctx.accounts.escrow_token_account.key();
+        escrow.opened_ledger_reference = ledger_reference;
         escrow.opened_amount = escrow
             .opened_amount
             .checked_add(amount)
-            .ok_or(MergeOSError::MathOverflow)?; // update is valid
+            .ok_or(MergeOSError::MathOverflow)?;
         escrow.remaining_amount = escrow
             .remaining_amount
             .checked_add(amount)
-            .ok_or(MergeOSError::MathOverflow)?; // update is valid
-        escrow.bump = ctx.bumps.escrow_vault; // update is valid
-        escrow.updated_at = Clock::get()?.unix_timestamp; // update is valid
+            .ok_or(MergeOSError::MathOverflow)?;
+        escrow.bump = ctx.bumps.escrow_vault;
+        escrow.updated_at = Clock::get()?.unix_timestamp;
 
         let config = &mut ctx.accounts.treasury_config;
         config.escrowed_amount = config
             .escrowed_amount
             .checked_add(amount)
-            .ok_or(MergeOSError::MathOverflow)?; // update is valid
+            .ok_or(MergeOSError::MathOverflow)?;
         emit!(EscrowOpened {
             project_id,
             ledger_reference,
             amount,
             funder: ctx.accounts.funder.key(),
         });
-        Ok(()) // update is valid
+        Ok(())
     }
 
     pub fn release_payout(
